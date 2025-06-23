@@ -784,3 +784,212 @@ CSS
 }
 
 ![Screenshot (263)](https://github.com/user-attachments/assets/54d74b08-6afd-4c4a-b2bb-c2f77a512527)
+
+PRAKTIKUM 4
+Menbuat Tabel User
+CREATE TABLE user (
+ id INT(11) auto_increment,
+ username VARCHAR(200) NOT NULL,
+ useremail VARCHAR(200),
+ userpassword VARCHAR(200),
+ PRIMARY KEY(id)
+);
+Buat file baru pada direktori app/Models dengan nama UserModel.php
+<?php
+namespace App\Models;
+use CodeIgniter\Model;
+class UserModel extends Model
+{
+ protected $table = 'user';
+ protected $primaryKey = 'id';
+ protected $useAutoIncrement = true;
+ protected $allowedFields = ['username', 'useremail', 'userpassword'];
+}
+Buat Controller baru dengan nama User.php pada direktori app/Controllers. Kemudian tambahkan method index() untuk menampilkan daftar user, dan method login() untuk proses login
+<?php
+namespace App\Controllers;
+use App\Models\UserModel;
+
+class User extends BaseController
+{
+    public function index() 
+    {
+        $title = 'Daftar User';
+        $model = new UserModel();
+        $users = $model->findAll();
+        return view('user/index', compact('users', 'title'));
+    }
+
+    public function login()
+    {
+        helper(['form']);
+        $email = $this->request->getPost('email');
+        $password = $this->request->getPost('password');
+
+        if (!$email)
+        {
+            return view('user/login');
+        }
+
+        $session = session();
+        $model = new UserModel();
+        $login = $model->where('useremail', $email)->first();
+
+        if ($login)
+        {
+            $pass = $login['userpassword'];
+            if (password_verify($password, $pass))
+            {
+                $login_data = [
+                    'user_id' => $login['id'],
+                    'user_name' => $login['username'],
+                    'user_email' => $login['useremail'],
+                    'logged_in' => TRUE,
+                ];
+                $session->set($login_data);
+                return redirect('admin/artikel');
+            }
+            else
+            {
+                $session->setFlashdata("flash_msg", "Password salah.");
+                return redirect()->to('/user/login');
+            }
+        }
+        else
+        {
+            $session->setFlashdata("flash_msg", "Email tidak terdaftar.");
+            return redirect()->to('/user/login');
+        }
+    }
+
+    public function logout()
+    {
+        session()->destroy();
+        return redirect()->to('/user/login');
+    }
+}
+Buat direktori baru dengan nama user pada direktori app/views, kemudian buat file baru dengan nama login.php
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <title>Login</title>
+ <style>
+   body {
+     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+     background: #f1f4f9;
+     display: flex;
+     justify-content: center;
+     align-items: center;
+     height: 100vh;
+     margin: 0;
+   }
+
+   #login-wrapper {
+     background: white;
+     padding: 40px;
+     border-radius: 12px;
+     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+     width: 360px;
+   }
+
+   h1 {
+     text-align: center;
+     margin-bottom: 30px;
+     color: #333;
+   }
+
+   .form-label {
+     display: block;
+     margin-bottom: 6px;
+     color: #555;
+     font-weight: bold;
+   }
+
+   .form-control {
+     width: 100%;
+     padding: 10px;
+     margin-bottom: 20px;
+     border: 1px solid #ccc;
+     border-radius: 6px;
+     box-sizing: border-box;
+     font-size: 14px;
+   }
+
+   .btn {
+     width: 100%;
+     padding: 10px;
+     background-color: #0069d9;
+     color: white;
+     border: none;
+     border-radius: 6px;
+     cursor: pointer;
+     font-size: 16px;
+     transition: background 0.2s ease;
+   }
+
+   .btn:hover {
+     background-color: #0053b3;
+   }
+
+   .alert {
+     padding: 10px;
+     background-color: #f44336;
+     color: white;
+     border-radius: 6px;
+     margin-bottom: 20px;
+     font-size: 14px;
+   }
+ </style>
+</head>
+<body>
+ <div id="login-wrapper">
+   <h1>Sign In</h1>
+
+   <?php if(session()->getFlashdata('flash_msg')): ?>
+     <div class="alert">
+       <?= session()->getFlashdata('flash_msg') ?>
+     </div>
+   <?php endif; ?>
+
+   <form action="" method="post">
+     <div class="mb-3">
+       <label for="InputForEmail" class="form-label">Email address</label>
+       <input type="email" name="email" class="form-control"
+       id="InputForEmail" value="<?= set_value('email') ?>">
+     </div>
+
+     <div class="mb-3">
+       <label for="InputForPassword" class="form-label">Password</label>
+       <input type="password" name="password" class="form-control" id="InputForPassword">
+     </div>
+
+     <button type="submit" class="btn">Login</button>
+   </form>
+ </div>
+</body>
+</html>
+Membuat database Seeder 
+php spark make:seeder UserSeeder
+buka file UserSeeder.php yang berada di lokasi direktori /app/Database/Seeds/UserSeeder.php kemudian isi dengan kode berikut
+<?php
+
+namespace App\Database\Seeds;
+
+use CodeIgniter\Database\Seeder;
+
+class UserSeeder extends Seeder
+{
+    public function run()
+    {
+        $model = model('UserModel');
+        $model->insert([
+            'username' => 'admin',
+            'useremail' => 'admin@email.com',
+            'userpassword' => password_hash('admin123', PASSWORD_DEFAULT),
+        ]);
+    }
+}
+Uji Coba Login
+Selanjutnya buka url http://localhost:8080/user/login seperti berikut
+![Screenshot (824)](https://github.com/user-attachments/assets/4add5f5b-0274-466a-bb84-6c4099b7dfdf)
