@@ -993,3 +993,65 @@ class UserSeeder extends Seeder
 Uji Coba Login
 Selanjutnya buka url http://localhost:8080/user/login seperti berikut
 ![Screenshot (824)](https://github.com/user-attachments/assets/4add5f5b-0274-466a-bb84-6c4099b7dfdf)
+
+PRAKTIKUM 5
+Untuk membuat pagination, buka Kembali Controller Artikel, kemudian modifikasi kode 
+pada method admin_index seperti berikut
+public function admin_index() 
+    {
+        $title = 'Daftar Artikel';
+        $model = new ArtikelModel();
+
+        $data = [
+            'title' => $title,
+            'artikel' => $model->paginate(10), // tampilkan 10 artikel per halaman
+            'pager' => $model->pager, // pagination
+        ];
+
+        return view('artikel/admin_index', $data);
+    }
+Buka file views/artikel/admin_index.php dan tambahkan kode berikut 
+dibawah deklarasi tabel data
+<?= $pager->links(); ?>
+![Screenshot (826)](https://github.com/user-attachments/assets/f5f8ad48-ea99-44c8-bdf4-96a631793cc4)
+
+PRAKTIKUM 6
+Upload Gambar pada Artikel
+Menambahkan fungsi unggah gambar pada tambah artikel. 
+Buka kembali Controller Artikel pada project sebelumnya, sesuaikan kode pada method add seperti berikut
+public function add() 
+    {
+        // Validasi data
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'judul' => 'required'
+        ]);
+    
+        $isDataValid = $validation->withRequest($this->request)->run();
+    
+        if ($isDataValid) {
+            $file = $this->request->getFile('gambar');
+            $file->move(ROOTPATH . 'public/gambar');
+
+            $artikel = new ArtikelModel();
+            $artikel->insert([
+                'judul' => $this->request->getPost('judul'),
+                'isi' => $this->request->getPost('isi'),
+                'slug' => url_title($this->request->getPost('judul')),
+                'gambar' => $file->getName(),
+            ]);
+    
+            return redirect('admin/artikel');
+        }
+    
+        $title = "Tambah Artikel";
+        return view('artikel/form_add', compact('title'));
+    }
+Kemudian pada file views/artikel/form_add.php tambahkan field input file seperti berikut
+<p>
+ <input type="file" name="gambar">
+</p>
+
+Dan sesuaikan tag form dengan menambahkan ecrypt type seperti berikut
+Ujicoba file upload dengan mengakses menu tambah artikel.
+![image](https://github.com/user-attachments/assets/7ae51da0-344d-400b-86dd-513eeefd7658)
